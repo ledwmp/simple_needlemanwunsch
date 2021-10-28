@@ -1,6 +1,15 @@
 import numpy as np
 
 def parse_blosumfile(blosum_path):
+    """Reads a substitution matrix in to a dictionary
+
+    Args:
+        Path to a substitution returns
+
+    Returns:
+        dictionary with key = amino_acid + "_" + amino_acid,
+        value = substition score
+    """
     blosum_matrix = dict()
     with open(blosum_path) as r:
         amino_acids = next(r).strip().split()
@@ -16,12 +25,18 @@ def parse_blosumfile(blosum_path):
 blosum_matrix = parse_blosumfile("blosum62.txt")
 
 class global_alignment:
+    """Alignment class to implement needleman-wunsch with gap,extend2, and extend2+
+
+    """
     def __init__(self,submatrix,gap,extendrecent,extend):
         self.submatrix = submatrix
         self.gap = gap
         self.extend = extend
         self.extendrecent = extendrecent
     def init_matrix(self):
+        """Method to initialize the recursion matrices
+        
+        """
         self.scorem  = np.zeros((self.len1,self.len2),float)
         self.scorex = np.zeros((self.len1,self.len2),float)
         self.scorey = np.zeros((self.len1,self.len2),float)
