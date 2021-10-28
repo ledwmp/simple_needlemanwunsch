@@ -2,10 +2,8 @@ import numpy as np
 
 def parse_blosumfile(blosum_path):
     """Reads a substitution matrix in to a dictionary
-
     Args:
-        Path to a substitution returns
-
+        Path to a substitution matrix
     Returns:
         dictionary with key = amino_acid + "_" + amino_acid,
         value = substition score
@@ -25,7 +23,7 @@ def parse_blosumfile(blosum_path):
 blosum_matrix = parse_blosumfile("blosum62.txt")
 
 class global_alignment:
-    """Alignment class to implement needleman-wunsch with gap,extend2, and extend2+
+    """Alignment class to implement needleman-wunsch with gap, extend2, and extend2+
 
     """
     def __init__(self,submatrix,gap,extendrecent,extend):
@@ -35,7 +33,7 @@ class global_alignment:
         self.extendrecent = extendrecent
     def init_matrix(self):
         """Method to initialize the recursion matrices
-        
+
         """
         self.scorem  = np.zeros((self.len1,self.len2),float)
         self.scorex = np.zeros((self.len1,self.len2),float)
@@ -49,7 +47,16 @@ class global_alignment:
         self.scorex[0][0] = np.NINF
         self.scorey[0][0] = np.NINF
 
-    def score_matrix(self,i,j,amino_key):
+    def score_matrix(self,i,j,amino_key,is_trace):
+        """Method to score the recursion matrices
+        Args:
+            i: position in peptide1
+            j: position in peptide2
+            amino_key: amino_acid + "_" + amino_acid
+            is_trace: boolean, True if trace, False if construction of matrix
+        Returns:
+            Tuples of scores from diagonal matrix, insertion peptide 2, insertion peptide1
+        """
         X = ((-self.gap+self.scorem[i][j-1]),\
             (-self.extend+self.scorex[i][j-1]),\
             (-self.extendrecent+self.scorey[i][j-1]),\
@@ -62,19 +69,33 @@ class global_alignment:
             (self.submatrix[amino_key]+self.scorex[i-1][j-1]),\
             (self.submatrix[amino_key]+self.scorey[i-1][j-1]),\
         )
-        return M,X,Y
+        if is_trace == True:
+            return M,X,Y
+        else:
+            return max(M),max(X),max(Y)
     def score_alignment(self,peptide1,peptide2):
+        """Method to help initialize matrices from peptides
+        """
         self.pep1,self.pep2 = list(peptide1),list(peptide2)
         self.len1,self.len2 = len(self.pep1)+1,len(self.pep2)+1
         self.init_matrix()
-
+        for i in range(1,self.len1):
+            amino_1 = self.pep1[i-1]
+            for j in range(1,self.len2):
+                amino_2 = self.pep2[j-1]
+                amino_key = amino_1+"_"+amino_2
+                print i,j
+                self.scorem[i][j],self.scorex[i][j],self.scorey[i][j] = \
+                self.score_matrix(i,j,amino_key,False)
     def traceback(self):
+        """Method to determine which matrix to trace through and create alignment
+        """
         i,j = self.len1-1,self.len2-1
         self.traceback_pep1 = list()
         self.traceback_pep2 = list()
         while i > 0 or j > 0:
             amino_key = self.pep2[j-1]+"_"+self.pep1[i-1]
-            M,X,Y = self.score_matrix(i,j,amino_key)
+            M,X,Y = self.score_matrix(i,j,amino_key,True)
             cell_concat = M+X+Y
             max_score = cell_concat.index(max(cell_concat))
             if max_score%3 == 0:
